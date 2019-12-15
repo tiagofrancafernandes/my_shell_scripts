@@ -1,0 +1,79 @@
+#! /usr/bin/expect -f
+
+##################################################
+# TODO:
+# -Server and Password force by params (to reuse)
+# -PEM File by paramns (optional)
+##################################################
+
+
+##################################################
+# CURRENT CREDITS
+##################################################
+# Copyright (C) 2019 Tiago França.
+#
+# Author:     Tiago França <contato@tiagofranca.com>
+##################################################
+
+
+##################################################
+# ORIGINAL CREDITS
+##################################################
+# Copyright (C) 2011 ~ 2016 Deepin, Inc.
+#
+# Author:     Wang Yong <wangyong@deepin.com>
+##################################################
+
+## All possible interactive messages:
+# Are you sure you want to continue connecting (yes/no)?
+# password:
+# Enter passphrase for key
+
+## Main
+# Delete self for secret, will not affect the following code
+#file delete $argv0
+
+# Setup variables
+# Set timeout -1 to avoid remote server dis-connect.
+
+set DEFAULT_IP {192.168.100.129}
+set IP_ARG_TO_CONNECT [lindex $argv 0]
+
+if {$IP_ARG_TO_CONNECT!=""} {
+	 set SERVER_TO_CONNECT $IP_ARG_TO_CONNECT
+} else {
+	 set SERVER_TO_CONNECT $DEFAULT_IP
+}
+
+puts "\n\n\tConnecting to $SERVER_TO_CONNECT\n\n\n"
+
+set timeout -1
+set user {tiago}
+set server $SERVER_TO_CONNECT
+set password {123}
+set private_key {}
+set port {22}
+set authentication {no}
+set ssh_cmd {/usr/lib/deepin-terminal/zssh -X -o ServerAliveInterval=60}
+set ssh_opt {$user@$server -p $port -o PubkeyAuthentication=$authentication}
+set remote_command {echo Bem-vindo ao Terminal, por favor, certifique-se de que os comandos rz e sz foram instalados no servidor antes de usar o botão direito do mouse para enviar e baixar arquivos. &&}
+
+# This code is use for synchronous pty's size to avoid terminal not update if login in remote server.
+trap {
+    stty rows [stty rows] columns [stty columns] < $spawn_out(slave,name)
+} WINCH
+
+# Spawn and expect
+eval spawn $ssh_cmd $ssh_opt $private_key -t $remote_command exec \\\$SHELL -l
+if {[string length $password]} {
+    expect {
+        timeout {send_user "ssh connection time out, please operate manually\n"}
+        -nocase "(yes/no)\\?" {send "yes\r"; exp_continue}
+        -nocase -re "password:|enter passphrase for key" {
+            send "$password\r"
+		}
+	}
+	
+}
+interact
+

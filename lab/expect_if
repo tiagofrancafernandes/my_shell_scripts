@@ -1,0 +1,12 @@
+#!/usr/bin/expect -f
+
+set DEFAULT_IP {192.168.100.129}
+set IP_ARG_TO_CONECT [lindex $argv 0]
+
+if {$IP_ARG_TO_CONECT!=""} {
+	set SERVER_TO_CONECT $IP_ARG_TO_CONECT
+} else {
+	set SERVER_TO_CONECT $DEFAULT_IP
+}
+
+puts $SERVER_TO_CONECT
