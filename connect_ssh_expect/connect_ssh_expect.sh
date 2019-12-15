@@ -35,13 +35,13 @@
 # Setup variables
 # Set timeout -1 to avoid remote server dis-connect.
 
-set SHOW_PASSWORD_CASE_REFUSED {yes}
 set IP_ARG_TO_CONNECT [lindex $argv 0]
 set USER_ARG [lindex $argv 1]
 set PASS_ARG [lindex $argv 2]
 set PORT_ARG [lindex $argv 3]
+set SHOW_PASS_ARG [lindex $argv 4]
 set VERIFIED 0
-set HELP "\nTo use:\n\t\[help\]\t\t\t\t\t\tShow this content\n\t\[server *\] \[user *\] \[pass *\] \[port\]\t\tData connection. With \* is required\n"
+set HELP "\n\t________________________\nTo use:\n\t\[help\]\n\t\[server *\] \[user *\] \[pass *\] \[port\] \[show_pass\]\n\tWith \* is required.\n\t________________________\n\t\[help\] ------------ Show this content.\n\t\[show_pass\] ------------ Show password in details if param is \"show\"\n\t\[port\] ------------ Port. Default port is 22.\n\n\t\!\!\! In case has special chars you need scape using \\"
 
 if {$IP_ARG_TO_CONNECT=="help"} {
     puts "$HELP"
@@ -69,6 +69,10 @@ if {$PASS_ARG!=""} {
 	puts "\Please, enter the PASS"
 }
 
+if {$PORT_ARG=="show"} {
+    set PORT_ARG 22
+    set SHOW_PASS_ARG {show}
+}
 
 if {$PORT_ARG!=""} {
     set PORT $PORT_ARG
@@ -78,14 +82,20 @@ if {$PORT_ARG!=""} {
     incr VERIFIED
 }
 
+if {$SHOW_PASS_ARG=="show"} {
+    set SHOW_PASSWORD_IN_DETAILS {yes}
+    incr VERIFIED
+} else {
+	set SHOW_PASSWORD_IN_DETAILS {no}
+    incr VERIFIED
+}
+
 if {$VERIFIED < 4} {
     puts "$HELP"
-    puts "\VERIFIED $VERIFIED inputs"
+    puts "\n\tVERIFIED $VERIFIED inputs"
 	exit
 } 
 
-
-puts "\n\n\tConnecting to $SERVER_TO_CONNECT\n\n\n"
 
 set timeout -1
 set user $USER
@@ -98,11 +108,14 @@ set ssh_cmd {/usr/lib/deepin-terminal/zssh -X -o ServerAliveInterval=60}
 set ssh_opt {$user@$server -p $port -o PubkeyAuthentication=$authentication}
 set remote_command {echo Bem-vindo ao Terminal, por favor, certifique-se de que os comandos rz e sz foram instalados no servidor antes de usar o botão direito do mouse para enviar e baixar arquivos. &&}
 
-if {$SHOW_PASSWORD_CASE_REFUSED=="yes"} {
-    set case_refused "\nFail to connect\nSERVER:$server USER:$user PORT:$port PASS:$password\n"
+if {$SHOW_PASSWORD_IN_DETAILS=="yes"} {
+    set connecton_details "SERVER:$server USER:$user PASS:$password PORT:$port\n"
 } else {
-	set case_refused "\nFail to connect\nSERVER:$server USER:$user PORT:$port\n"
+	set connecton_details "SERVER:$server USER:$user PORT:$port\n"
 }
+
+
+puts "\n\n\tConnecton details: $connecton_details\n\n\n"
 
 # This code is use for synchronous pty's size to avoid terminal not update if login in remote server.
 trap {
@@ -115,7 +128,7 @@ if {[string length $password]} {
     expect {
         timeout {send_user "ssh connection time out, please operate manually\n"}
         -nocase "(yes/no)\\?" {send "yes\r"; exp_continue}
-        -nocase "*refused*" {puts $case_refused}
+        -nocase "*refused*" {puts "\nFail to connect\n$connecton_details"}
         -nocase -re "password:|enter passphrase for key" {
             send "$password\r"
 		}
