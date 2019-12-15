@@ -2,7 +2,6 @@
 
 ##################################################
 # TODO:
-# -Server and Password force by params (to reuse)
 # -PEM File by paramns (optional)
 ##################################################
 
@@ -36,27 +35,74 @@
 # Setup variables
 # Set timeout -1 to avoid remote server dis-connect.
 
-set DEFAULT_IP {192.168.100.129}
+set SHOW_PASSWORD_CASE_REFUSED {yes}
 set IP_ARG_TO_CONNECT [lindex $argv 0]
+set USER_ARG [lindex $argv 1]
+set PASS_ARG [lindex $argv 2]
+set PORT_ARG [lindex $argv 3]
+set VERIFIED 0
+set HELP "\nTo use:\n\t\[help\]\t\t\t\t\t\tShow this content\n\t\[server *\] \[user *\] \[pass *\] \[port\]\t\tData connection. With \* is required\n"
+
+if {$IP_ARG_TO_CONNECT=="help"} {
+    puts "$HELP"
+    exit
+}
 
 if {$IP_ARG_TO_CONNECT!=""} {
-	 set SERVER_TO_CONNECT $IP_ARG_TO_CONNECT
+    set SERVER_TO_CONNECT $IP_ARG_TO_CONNECT
+    incr VERIFIED
 } else {
-	 set SERVER_TO_CONNECT $DEFAULT_IP
+	puts "\Please, enter the SERVER"
 }
+
+if {$USER_ARG!=""} {
+    set USER $USER_ARG
+    incr VERIFIED
+} else {
+	puts "\Please, enter the USER"
+}
+
+if {$PASS_ARG!=""} {
+    set PASS $PASS_ARG
+    incr VERIFIED
+} else {
+	puts "\Please, enter the PASS"
+}
+
+
+if {$PORT_ARG!=""} {
+    set PORT $PORT_ARG
+    incr VERIFIED
+} else {
+	set PORT 22
+    incr VERIFIED
+}
+
+if {$VERIFIED < 4} {
+    puts "$HELP"
+    puts "\VERIFIED $VERIFIED inputs"
+	exit
+} 
+
 
 puts "\n\n\tConnecting to $SERVER_TO_CONNECT\n\n\n"
 
 set timeout -1
-set user {tiago}
+set user $USER
 set server $SERVER_TO_CONNECT
-set password {123}
+set password $PASS
 set private_key {}
-set port {22}
+set port $PORT
 set authentication {no}
 set ssh_cmd {/usr/lib/deepin-terminal/zssh -X -o ServerAliveInterval=60}
 set ssh_opt {$user@$server -p $port -o PubkeyAuthentication=$authentication}
 set remote_command {echo Bem-vindo ao Terminal, por favor, certifique-se de que os comandos rz e sz foram instalados no servidor antes de usar o botão direito do mouse para enviar e baixar arquivos. &&}
+
+if {$SHOW_PASSWORD_CASE_REFUSED=="yes"} {
+    set case_refused "\nFail to connect\nSERVER:$server USER:$user PORT:$port PASS:$password\n"
+} else {
+	set case_refused "\nFail to connect\nSERVER:$server USER:$user PORT:$port\n"
+}
 
 # This code is use for synchronous pty's size to avoid terminal not update if login in remote server.
 trap {
@@ -69,6 +115,7 @@ if {[string length $password]} {
     expect {
         timeout {send_user "ssh connection time out, please operate manually\n"}
         -nocase "(yes/no)\\?" {send "yes\r"; exp_continue}
+        -nocase "*refused*" {puts $case_refused}
         -nocase -re "password:|enter passphrase for key" {
             send "$password\r"
 		}
