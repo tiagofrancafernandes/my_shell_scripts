@@ -33,4 +33,6 @@ chown tiago:tiago -R /tmp/_temp_Downloads
 #sudo service mysql start
 
 ############################
-/apps/tiago_scripts/allthis/RUN*
+for script in /apps/tiago_scripts/allthis/enabled/RUN*.sh; do
+    /bin/bash $script;
+done
